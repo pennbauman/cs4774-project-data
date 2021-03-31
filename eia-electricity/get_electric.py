@@ -24,16 +24,18 @@ wind_i = 0
 
 if not os.path.isfile(XLSX):
     print("Downloading '%s'" % XLSX)
-    with open(XLSX, 'xb') as f:
-        respose = urllib.request.urlopen('https://www.eia.gov/electricity/data/state/generation_monthly.xlsx')
-        if (respose.getcode() != 200):
-            raise ValueError('http get fail')
-        f.write(respose.read())
+    respose = urllib.request.urlretrieve('https://www.eia.gov/electricity/data/state/generation_monthly.xlsx', XLSX)
+    try:
+        f = open(XLSX, "r")
+        f.close()
+    except:
+        raise ValueError('http get fail')
 
 i = 0
 for start in XLSX_SHEET_HEADERS:
     print("Processing Sheet %d" % i)
     raw = pd.read_excel(XLSX, i, header=start, engine="openpyxl")
+    raw = raw[raw["STATE"] != "US-TOTAL"]
     data = raw.loc[raw["TYPE OF PRODUCER"] == "Total Electric Power Industry"]
     solar = data.loc[data["ENERGY SOURCE"] == "Solar Thermal and Photovoltaic"]
     wind = data.loc[data["ENERGY SOURCE"] == "Wind"]

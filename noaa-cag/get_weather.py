@@ -4,6 +4,7 @@
 #
 #   Penn Bauman (pcb8gb@virginia.edu)
 #     CS 4774 - Spring 2021
+import os
 import urllib.request
 
 START_YEAR = 2000
@@ -25,34 +26,40 @@ kind = {
     "precip": "pcp",
 }
 
-def url(state, month, kind):
-    fmt = "time-series/{ST}-{kind}-1-{month}-{start}-{end}.csv"
-    return "https://www.ncdc.noaa.gov/cag/statewide/" + fmt.format(
-            ST = state,
-            kind = kind,
-            month = month,
-            start = START_YEAR,
-            end = END_YEAR,
-        )
-def get_data(state, month, kind):
-    u = url(state, month, kind)
-    respose = urllib.request.urlopen(u)
-    if (respose.getcode() != 200):
-        raise ValueError('http get fail')
+def name(state, month, kind):
+    fmt = "{ST}-{kind}-1-{month}-{start}-{end}.csv"
+    return fmt.format(ST = state, kind = kind, month = month,
+            start = START_YEAR, end = END_YEAR)
 
-    respose.readline()
-    respose.readline()
-    respose.readline()
-    respose.readline()
-    respose.readline()
+def url(state, month, kind):
+    return "https://www.ncdc.noaa.gov/cag/statewide/time-series/" + name(state, month, kind)
+
+def get_data(state, month, kind):
+    n = name(state, month, kind)
+    try:
+        raw = open("tmp/" + n, "r")
+    except:
+        u = url(state, month, kind)
+        urllib.request.urlretrieve(u, "tmp/" + n)
+        try:
+            raw = open("tmp/" + n, "r")
+        except:
+            raise ValueError('http get fail')
+
+    raw.readline()
+    raw.readline()
+    raw.readline()
+    raw.readline()
+    raw.readline()
 
     data = {}
     while True:
-        line = respose.readline()
+        line = raw.readline()
         if not line:
             break
         try:
-            arr = line.decode('ascii').split(",")
+            arr = line.split(",")
+            #.decode('ascii')
             data[int(arr[0][0:4])] = float(arr[1])
         except:
             print(arr)
@@ -60,8 +67,10 @@ def get_data(state, month, kind):
         #print(k + ": " + str(v))
     return data
 
+os.remove("weather_data.csv")
+os.makedirs("tmp", exist_ok=True)
 try:
-    out = open("weather_data.csv", "w")
+    out = open("weather_data.csv", "a")
 except:
     out = open("weather_data.csv", "x")
 
